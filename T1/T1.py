@@ -3,8 +3,8 @@
 """
 Scanner de portas TCP/UDP com banner grabbing.
 Autores:
-    Matheus Pereira Dias - 11207752
-    Fernando Cirilo Zanchetta - 12547419
+    Matheus Pereira Dias
+    Fernando Cirilo Zanchetta
 """
 
 import socket
@@ -199,3 +199,4 @@ if __name__ == "__main__":
     resultados.sort(key=lambda x: (x[1], x[0]))
 
     imprimir_resultados(resultados)
+
