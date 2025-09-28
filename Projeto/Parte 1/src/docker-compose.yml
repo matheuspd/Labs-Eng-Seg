@@ -1,0 +1,28 @@
+services:
+  web:
+    build: ./app
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql://vulnuser:vulnpass@db:5432/vulndb
+      - FLASK_ENV=development
+      - FLASK_DEBUG=1
+    depends_on:
+      - db
+    networks:
+      - vuln-network
+
+  db:
+    build: ./postgres
+    environment:
+      - POSTGRES_DB=vulndb
+      - POSTGRES_USER=vulnuser
+      - POSTGRES_PASSWORD=vulnpass
+    ports:
+      - "5432:5432"
+    networks:
+      - vuln-network
+
+networks:
+  vuln-network:
+    driver: bridge

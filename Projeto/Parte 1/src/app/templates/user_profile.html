@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Perfil do Usuário - {{ profile_user[1] }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1><i class="fas fa-user"></i> Perfil do Usuário</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item active">Usuário #{{ profile_user[0] }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-id-card"></i> Informações do Usuário</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Dados Básicos</h6>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>ID:</strong></td>
+                                <td>#{{ profile_user[0] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Nome de Usuário:</strong></td>
+                                <td>{{ profile_user[1] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Email:</strong></td>
+                                <td>{{ profile_user[3] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Função:</strong></td>
+                                <td>
+                                    {% set role_class = {
+                                        'admin': 'danger',
+                                        'employee': 'warning', 
+                                        'customer': 'info'
+                                    } %}
+                                    <span class="badge bg-{{ role_class.get(profile_user[4], 'secondary') }}">
+                                        {{ profile_user[4].title() }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Criado em:</strong></td>
+                                <td>{{ profile_user[5].strftime('%d/%m/%Y às %H:%M') if profile_user[5] else 'N/A' }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6>Informações Sensíveis</h6>
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Senha:</strong></td>
+                                <td class="text-danger">{{ profile_user[2] }}</td>
+                            </tr>
+                        </table>
+                        
+                        <div class="alert alert-danger mt-3">
+                            <small>
+                                <i class="fas fa-bug"></i>
+                                <strong>Vulnerabilidade:</strong> Senha em texto plano visível para qualquer usuário logado!
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- User Actions (Vulnerable) -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-cogs"></i> Ações do Usuário</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        {% if profile_user[0] == session.user_id or session.role in ['admin'] %}
+                        <button class="btn btn-primary mb-2" onclick="resetPassword('{{ profile_user[0] }}')">
+                            <i class="fas fa-key"></i> Redefinir Senha
+                        </button>
+                        <br>
+                        {% endif %}
+                        <button class="btn btn-info mb-2" onclick="viewUserOrders('{{ profile_user[0] }}')">
+                            <i class="fas fa-shopping-cart"></i> Ver Pedidos
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        {% if session.role in ['admin'] %}                  
+                        <button class="btn btn-warning mb-2" onclick="changeRole('{{ profile_user[0] }}', '{{ profile_user[4] }}')">
+                            <i class="fas fa-user-tag"></i> Alterar Função
+                        </button>
+                        <br>
+                        {% endif %}
+                        {% if profile_user[0] == session.user_id or session.role in ['admin'] %}
+                        <button class="btn btn-danger mb-2" onclick="deleteAccount('{{ profile_user[0] }}')">
+                            <i class="fas fa-trash"></i> Excluir Conta
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <!-- Session Information -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6><i class="fas fa-info-circle"></i> Informações da Sessão</h6>
+                </div>
+                <div class="card-body">
+                    <small>
+                        <strong>Seu ID:</strong> {{ session.user_id }}<br>
+                        <strong>Seu Usuário:</strong> {{ session.username }}<br>
+                        <strong>Sua Função:</strong> {{ session.role }}<br>
+                        <strong>Visualizando:</strong> {{ profile_user[1] }} (ID: {{ profile_user[0] }})
+                    </small>
+                    
+                    {% if session.user_id != profile_user[0] %}
+                    <div class="alert alert-warning mt-2 p-2">
+                        <small>
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Você está visualizando o perfil de outro usuário!
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Vulnerable functions - no proper authorization checks
+function resetPassword(userId) {
+    const newPassword = prompt('Nova senha para o usuário:');
+    if (newPassword) {
+        // Vulnerable: Any user can reset any other user's password
+        fetch('/api/reset_password', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user_id: userId,
+                new_password: newPassword
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Senha redefinida com sucesso!');
+                location.reload();
+            } else {
+                alert('Erro: ' + (data.error || 'Erro desconhecido'));
+            }
+        })
+        .catch(error => {
+            alert('Funcionalidade não implementada (vulnerabilidade demonstrada)');
+        });
+    }
+}
+
+function changeRole(userId, currentRole) {
+    const roles = ['customer', 'employee', 'admin'];
+    const newRole = prompt(`Função atual: ${currentRole}\nNova função (customer/employee/admin):`);
+    
+    if (newRole && roles.includes(newRole)) {
+        // Vulnerable: Any user can change any other user's role
+        alert(`Vulnerabilidade: Qualquer usuário pode alterar a função de outros usuários!\nTentativa de alterar usuário ${userId} para ${newRole}`);
+    }
+}
+
+function deleteAccount(userId) {
+    if (confirm('Tem certeza que deseja excluir esta conta?')) {
+        alert(`Vulnerabilidade: Qualquer usuário pode excluir contas de outros usuários!\nTentativa de excluir usuário ${userId}`);
+    }
+}
+
+function viewUserOrders(userId) {
+    // Redirect to orders with user filter (vulnerable)
+    window.location.href = `/orders?user_id=${userId}`;
+}
+
+function impersonateUser(userId) {
+    if (confirm('Deseja personificar este usuário? (Fazer login como ele)')) {
+        // Extremely vulnerable: User impersonation without proper authorization
+        alert(`VULNERABILIDADE CRÍTICA: Personificação de usuário sem autorização!\nTentativa de personificar usuário ${userId}`);
+        
+        // In a real vulnerable app, this might actually work:
+        // fetch('/api/impersonate', { method: 'POST', body: JSON.stringify({user_id: userId}) })
+    }
+}
+
+function goToUser() {
+    const userId = document.getElementById('userIdInput').value;
+    if (userId) {
+        window.location.href = `/user/${userId}`;
+    }
+}
+
+// Demonstrate session hijacking vulnerability
+function showSessionInfo() {
+    console.log('Session Information (Exposed):');
+    console.log('User ID:', '{{ session.user_id }}');
+    console.log('Username:', '{{ session.username }}');
+    console.log('Role:', '{{ session.role }}');
+    console.log('Viewing User:', '{{ profile_user[0] }}');
+    
+    alert('Informações da sessão expostas no console! Verifique as ferramentas de desenvolvedor.');
+}
+
+// Auto-execute session info display
+document.addEventListener('DOMContentLoaded', function() {
+    // Simulate session token exposure
+    const sessionToken = 'weak_session_' + '{{ session.user_id }}' + '_' + Date.now();
+    console.log('Weak Session Token:', sessionToken);
+});
+</script>
+{% endblock %}
+

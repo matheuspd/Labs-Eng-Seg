@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Upload de Arquivo - Vulnerable Sales Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1><i class="fas fa-upload"></i> Upload de Arquivo</h1>
+        <p class="text-muted">Faça upload de arquivos para o sistema</p>
+    </div>
+</div>
+
+<!-- File Upload Vulnerability Warning -->
+<div class="alert alert-danger">
+    <i class="fas fa-exclamation-triangle"></i>
+    <strong>Vulnerabilidade de Upload:</strong> 
+    Este sistema aceita qualquer tipo de arquivo sem validação adequada!
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-file-upload"></i> Fazer Upload</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data" action="{{ url_for('upload_file') }}">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Selecione um arquivo</label>
+                        <input type="file" class="form-control" id="file" name="file" required>
+                        <div class="form-text text-danger">
+                            ⚠️ Nenhuma validação de tipo ou tamanho de arquivo!
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Descrição (Opcional)</label>
+                        <textarea class="form-control" id="description" name="description" rows="3" 
+                                  placeholder="Descreva o arquivo..."></textarea>
+                        <div class="form-text text-warning">
+                            ⚠️ Campo vulnerável a XSS - conteúdo não sanitizado!
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Fazer Upload
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Uploaded Files List (Simulated) -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-folder-open"></i> Arquivos Enviados</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nome do Arquivo</th>
+                                <th>Tipo</th>
+                                <th>Tamanho</th>
+                                <th>Enviado por</th>
+                                <th>Data</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><i class="fas fa-file-image text-primary"></i> logo.png</td>
+                                <td><span class="badge bg-success">image/png</span></td>
+                                <td>45 KB</td>
+                                <td>admin</td>
+                                <td>25/12/2024</td>
+                                <td>
+                                    <a href="/uploads/logo.png" class="btn btn-sm btn-primary" target="_blank">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteFile('logo.png')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-file-code text-warning"></i> script.php</td>
+                                <td><span class="badge bg-danger">application/php</span></td>
+                                <td>2 KB</td>
+                                <td>employee1</td>
+                                <td>24/12/2024</td>
+                                <td>
+                                    <a href="/uploads/script.php" class="btn btn-sm btn-primary" target="_blank">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteFile('script.php')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><i class="fas fa-file-alt text-info"></i> malware.exe</td>
+                                <td><span class="badge bg-danger">application/exe</span></td>
+                                <td>1.2 MB</td>
+                                <td>customer1</td>
+                                <td>23/12/2024</td>
+                                <td>
+                                    <a href="/uploads/malware.exe" class="btn btn-sm btn-primary" target="_blank">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-danger" onclick="deleteFile('malware.exe')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Arquivos Perigosos Detectados:</strong> 
+                    O sistema permitiu upload de arquivos PHP executáveis e executáveis Windows!
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Vulnerability Information -->
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <h6><i class="fas fa-bug"></i> Vulnerabilidades de Upload</h6>
+            </div>
+            <div class="card-body">
+                <h6>Problemas Identificados:</h6>
+                <ul class="list-unstyled">
+                    <li><i class="fas fa-times text-danger"></i> Sem validação de tipo de arquivo</li>
+                    <li><i class="fas fa-times text-danger"></i> Sem limite de tamanho</li>
+                    <li><i class="fas fa-times text-danger"></i> Execução de arquivos PHP possível</li>
+                    <li><i class="fas fa-times text-danger"></i> Upload de executáveis permitido</li>
+                    <li><i class="fas fa-times text-danger"></i> Sem verificação de malware</li>
+                    <li><i class="fas fa-times text-danger"></i> Arquivos acessíveis publicamente</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- File Type Examples -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6><i class="fas fa-file"></i> Tipos de Arquivo Perigosos</h6>
+            </div>
+            <div class="card-body">
+                <small>
+                    <strong>Executáveis:</strong> .exe, .bat, .cmd, .scr<br>
+                    <strong>Scripts:</strong> .php, .asp, .jsp, .py<br>
+                    <strong>Configuração:</strong> .htaccess, .config<br>
+                    <strong>Compactados:</strong> .zip, .rar (podem conter malware)<br>
+                    <strong>Documentos:</strong> .doc, .pdf (podem ter macros)
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- XSS Demonstration in File Descriptions -->
+<div class="card mt-4 border-warning">
+    <div class="card-header bg-warning">
+        <h6><i class="fas fa-bug"></i> Demonstração XSS em Descrições</h6>
+    </div>
+    <div class="card-body">
+        <p>Descrições de arquivos anteriores (não sanitizadas):</p>
+        <div id="file-descriptions">
+            <div class="alert alert-light">
+                <strong>logo.png:</strong> <span>Logotipo da empresa</span>
+            </div>
+            <div class="alert alert-light">
+                <strong>script.php:</strong> <span><script>alert('XSS via descrição de arquivo!')</script>Script de backup</span>
+            </div>
+            <div class="alert alert-light">
+                <strong>malware.exe:</strong> <span><img src="x" onerror="alert('XSS via tag img!')">Arquivo suspeito</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function deleteFile(filename) {
+    if (confirm(`Tem certeza que deseja excluir o arquivo "${filename}"?`)) {
+        // Vulnerable: No CSRF protection, no proper authorization
+        alert(`Vulnerabilidade: Exclusão de arquivo sem proteção CSRF!\nTentativa de excluir: ${filename}`);
+    }
+}
+
+// Simulate file upload vulnerabilities
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('file');
+    
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            console.log('Arquivo selecionado:', file.name);
+            console.log('Tipo:', file.type);
+            console.log('Tamanho:', file.size);
+            
+            // Simulate vulnerability checks
+            const dangerousExtensions = ['.php', '.asp', '.jsp', '.exe', '.bat', '.cmd', '.scr'];
+            const extension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'));
+            
+            if (dangerousExtensions.includes(extension)) {
+                console.warn('VULNERABILIDADE: Arquivo perigoso detectado!', extension);
+                
+                // In a secure system, this would be blocked
+                const warning = document.createElement('div');
+                warning.className = 'alert alert-danger mt-2';
+                warning.innerHTML = `<i class="fas fa-exclamation-triangle"></i> 
+                    <strong>Arquivo Perigoso:</strong> ${file.name} (${extension}) 
+                    - Em um sistema seguro, isso seria bloqueado!`;
+                
+                fileInput.parentNode.appendChild(warning);
+            }
+            
+            // Simulate large file vulnerability
+            if (file.size > 10 * 1024 * 1024) { // 10MB
+                console.warn('VULNERABILIDADE: Arquivo muito grande sem limite!');
+            }
+        }
+    });
+    
+    // Simulate XSS in file descriptions
+    const descriptions = document.querySelectorAll('#file-descriptions .alert span');
+    descriptions.forEach(span => {
+        // Vulnerable: Using innerHTML allows script execution
+        const content = span.textContent;
+        span.innerHTML = content; // This would execute any scripts in the content
+    });
+});
+
+// Simulate directory traversal vulnerability
+function simulateDirectoryTraversal() {
+    const maliciousFilenames = [
+        '../../../etc/passwd',
+        '..\\..\\..\\windows\\system32\\config\\sam',
+        'shell.php.txt',
+        'image.jpg.php',
+        'file\x00.jpg'
+    ];
+    
+    console.log('Exemplos de Directory Traversal:');
+    maliciousFilenames.forEach(filename => {
+        console.log(`- ${filename}`);
+    });
+    
+    alert('Vulnerabilidade de Directory Traversal demonstrada no console!');
+}
+
+// Auto-demonstrate some vulnerabilities
+setTimeout(() => {
+    console.log('=== DEMONSTRAÇÃO DE VULNERABILIDADES DE UPLOAD ===');
+    console.log('1. Sem validação de tipo de arquivo');
+    console.log('2. Sem limite de tamanho');
+    console.log('3. Execução de código possível');
+    console.log('4. XSS em descrições de arquivo');
+    console.log('5. Directory traversal possível');
+    console.log('6. Sem proteção CSRF');
+}, 3000);
+</script>
+{% endblock %}
+
