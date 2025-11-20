@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Vulnerable Sales Dashboard{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .navbar-brand {
+            font-weight: bold;
+            color: #fff !important;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.95);
+            margin-top: 50px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border: none;
+            border-radius: 25px;
+            padding: 10px 30px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .sidebar {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            margin: 20px;
+            padding: 20px;
+        }
+        
+        .sidebar a {
+            color: #fff;
+            text-decoration: none;
+            display: block;
+            padding: 10px 15px;
+            margin: 5px 0;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar a:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateX(5px);
+        }
+        
+        .main-content {
+            background: rgba(255,255,255,0.95);
+            border-radius: 15px;
+            margin: 20px;
+            padding: 30px;
+            min-height: 80vh;
+        }
+        
+        .alert {
+            border: none;
+            border-radius: 10px;
+        }
+        
+        .table {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    {% if session.user_id %}
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('dashboard') }}">
+                <i class="fas fa-shield-alt"></i> VulnShop Dashboard
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text me-3">
+                    <a href="{{ url_for('view_user', user_id=session.user_id) }}">
+                        <i class="fas fa-user"></i> {{ session.username }} ({{ session.role }})
+                    </a>
+                </span>
+                <a class="nav-link" href="{{ url_for('logout') }}">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </a>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <div class="container-fluid">
+        {% if session.user_id %}
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                <div class="sidebar">
+                    <h5 class="text-white mb-3">
+                        <i class="fas fa-tachometer-alt"></i> Menu
+                    </h5>
+                    
+                    <a href="{{ url_for('dashboard') }}">
+                        <i class="fas fa-home"></i> Dashboard
+                    </a>
+                    
+                    <a href="{{ url_for('products') }}">
+                        <i class="fas fa-box"></i> Produtos
+                    </a>
+                    
+                    <a href="{{ url_for('orders') }}">
+                        <i class="fas fa-shopping-cart"></i> Pedidos
+                    </a>
+                    
+                    {% if session.role in ['admin'] %}
+                    <a href="{{ url_for('admin_panel') }}">
+                        <i class="fas fa-users-cog"></i> Gerenciar Usuários
+                    </a>
+                    {% endif %}
+                    
+                    <a href="{{ url_for('upload_file') }}">
+                        <i class="fas fa-upload"></i> Upload de Arquivo
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="col-md-9">
+                <div class="main-content">
+                    {% else %}
+                    <div class="row justify-content-center">
+                        <div class="col-md-6">
+                    {% endif %}
+        
+                    <!-- Flash Messages -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                                    {{ message|safe }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                    
+                    <!-- Page Content -->
+                    {% block content %}{% endblock %}
+                    
+                {% if session.user_id %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
+

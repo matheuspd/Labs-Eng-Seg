@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}Produtos - Vulnerable Sales Dashboard{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h1><i class="fas fa-box"></i> Produtos</h1>
+    </div>
+    <div class="col-md-4">
+        <!-- Vulnerable search form - XSS and SQL Injection -->
+        <form method="GET" action="{{ url_for('products') }}">
+            <div class="input-group">
+                <input type="text" class="form-control" name="search" 
+                       placeholder="Buscar produtos..." value="{{ search }}">
+                <button class="btn btn-primary" type="submit">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5><i class="fas fa-list"></i> Lista de Produtos</h5>
+        {% if session.role in ['admin', 'employee'] %}
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addProductModal">
+            <i class="fas fa-plus"></i> Adicionar Produto
+        </button>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if products %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Descrição</th>
+                        <th>Preço</th>
+                        <th>Estoque</th>
+                        <th>Criado em</th>
+                        {% if session.role in ['admin', 'employee'] %}
+                        <th>Ações</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td>{{ product[0] }}</td>
+                        <td>{{ product[1] }}</td>
+                        <td>{{ product[2][:50] }}{% if product[2]|length > 50 %}...{% endif %}</td>
+                        <td>R$ {{ "%.2f"|format(product[3]) }}</td>
+                        <td>
+                            <span class="badge {% if product[4] > 10 %}bg-success{% elif product[4] > 0 %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ product[4] }}
+                            </span>
+                        </td>
+                        <td>{{ product[5].strftime('%d/%m/%Y') if product[5] else 'N/A' }}</td>
+                        {% if session.role in ['admin', 'employee'] %}
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="editProduct('{{ product[0] }}', '{{ product[1] }}', '{{ product[3] }}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteProduct('{{ product[0] }}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                        {% endif %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+            <h5>Nenhum produto encontrado</h5>
+            <p class="text-muted">{% if search %}Tente uma busca diferente{% else %}Adicione o primeiro produto{% endif %}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Add Product Modal (Vulnerable to XSS) -->
+{% if session.role in ['admin', 'employee'] %}
+<div class="modal fade" id="addProductModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Adicionar Produto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addProductForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="productName" class="form-label">Nome do Produto</label>
+                        <input type="text" class="form-control" id="productName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="productDescription" class="form-label">Descrição</label>
+                        <textarea class="form-control" id="productDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="productPrice" class="form-label">Preço</label>
+                        <input type="number" class="form-control" id="productPrice" step="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="productStock" class="form-label">Quantidade em Estoque</label>
+                        <input type="number" class="form-control" id="productStock" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Adicionar Produto</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Vulnerable JavaScript functions - no CSRF protection
+function editProduct(id, name, price) {
+    const newName = prompt('Novo nome:', name);
+    const newPrice = prompt('Novo preço:', price);
+    
+    if (newName && newPrice) {
+        // Vulnerable AJAX call without CSRF token
+        fetch('/api/update_product', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                id: id,
+                name: newName,
+                price: parseFloat(newPrice)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Erro: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Erro na requisição: ' + error);
+        });
+    }
+}
+
+function deleteProduct(id) {
+    if (confirm('Tem certeza que deseja excluir este produto?')) {
+        // Vulnerable delete operation
+        alert('Funcionalidade de exclusão não implementada (vulnerabilidade: falta de validação)');
+    }
+}
+
+document.getElementById('addProductForm')?.addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const name = document.getElementById('productName').value;
+    const description = document.getElementById('productDescription').value;
+    const price = document.getElementById('productPrice').value;
+    const stock = document.getElementById('productStock').value;
+
+    fetch('/api/add_product', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            name: name,
+            description: description,
+            price: price,
+            stock: stock
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Erro: ' + data.error);
+        }
+    })
+    .catch(error => {
+        alert('Erro na requisição: ' + error);
+    });
+});
+</script>
+{% endblock %}
